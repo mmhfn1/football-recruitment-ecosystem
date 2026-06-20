@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Football Recruitment Ecosystem · Intelligence Dashboard</title>
+<meta name="description" content="A 16-year forensic analysis of how talent flows through European football — transfer fees, revenue gravity, and scouting intelligence, 2010–2026.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22%23FF2D78%22/></svg>">
+<link rel="stylesheet" href="assets/css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.0/plotly.min.js"></script>
+</head>
+<body>
+
+<div id="scroll-progress"></div>
+<div id="net-tooltip"></div>
+<div id="club-panel"></div>
+<button id="back-to-top" title="Back to top" aria-label="Back to top">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+</button>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+    <span class="pulse-dot"></span> FRE · INTEL
+  </div>
+  <div class="nav-links">
+    <button class="nav-link active" onclick="FRE_scrollTo('#ecosystem', event)">① Ecosystem</button>
+    <button class="nav-link" onclick="FRE_scrollTo('#intelligence', event)">② Intelligence</button>
+    <button class="nav-link" onclick="FRE_scrollTo('#analysis', event)">③ Analysis</button>
+    <button class="nav-link" onclick="FRE_scrollTo('#glossary', event)">④ Glossary</button>
+  </div>
+  <div class="nav-search">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+    <input type="text" id="club-search-input" placeholder="Find a club…" autocomplete="off">
+  </div>
+</nav>
+<div id="search-dropdown"></div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">Football Recruitment Intelligence · 2010 – 2026</div>
+  <div style="font-size:11px;color:var(--dim);letter-spacing:1px;margin-bottom:24px;margin-top:-8px">
+    Synthetic dataset — procedurally generated, not real transfer records
+  </div>
+  <h1 class="hero-title">FOOTBALL<br><span>RECRUITMENT</span><br>ECOSYSTEM</h1>
+  <p class="hero-subtitle">
+    A 16-year forensic analysis of how talent flows through European football —
+    from youth academies to superclubs — through the lens of transfer fees,
+    revenue gravity, and scouting intelligence.
+  </p>
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <span class="hero-stat-val" id="stat-transfers">0</span>
+      <span class="hero-stat-label">Paid Transfers</span>
+    </div>
+    <div class="hero-stat">
+      <span class="hero-stat-val amber" id="stat-fees">€0B</span>
+      <span class="hero-stat-label">Total Fees Spent</span>
+    </div>
+    <div class="hero-stat">
+      <span class="hero-stat-val magenta" id="stat-clubs">0</span>
+      <span class="hero-stat-label">Clubs Tracked</span>
+    </div>
+    <div class="hero-stat">
+      <span class="hero-stat-val" id="stat-genjumps">0</span>
+      <span class="hero-stat-label">Generational Jumps</span>
+    </div>
+    <div class="hero-stat">
+      <span class="hero-stat-val amber" id="stat-avgfee">€0M</span>
+      <span class="hero-stat-label">Avg Transfer Fee</span>
+    </div>
+  </div>
+  <div class="scroll-hint" onclick="FRE_scrollTo('#ecosystem')">
+    SCROLL TO EXPLORE
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECTION 1: ECOSYSTEM NETWORK                           -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="ecosystem">
+  <div class="section-header">
+    <div class="section-number">01 / 04 — RECRUITMENT NETWORK</div>
+    <h2 class="section-title">THE TRANSFER ECOSYSTEM</h2>
+    <p class="section-desc">
+      A force-directed gravity network where each club is a node and each paid transfer is an edge.
+      Node size reflects annual revenue. Aggregator superclubs act as fixed gravity wells around the ring;
+      Refineries and Incubators orbit them, drawn closer as transfer activity increases.
+      <strong style="color:var(--text)">Click any club to pin it and see its full revenue history.</strong>
+      Use the search box above to jump straight to a club.
+    </p>
+  </div>
+
+  <div id="network-wrap">
+    <canvas id="network-canvas" height="620"></canvas>
+    <div class="network-controls">
+      <div class="year-display" id="year-display">2010</div>
+      <button class="play-btn" id="play-btn" onclick="FRE_Network.togglePlay()">▶ Play</button>
+      <div class="jump-btns">
+        <button class="jump-btn" onclick="FRE_Network.jumpToYear(2010)">2010</button>
+        <button class="jump-btn" onclick="FRE_Network.jumpToYear(2015)">2015</button>
+        <button class="jump-btn" onclick="FRE_Network.jumpToYear(2020)">2020</button>
+        <button class="jump-btn" onclick="FRE_Network.jumpToYear(2026)">2026</button>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <span style="font-size:11px;color:var(--sub);letter-spacing:1px">SPEED</span>
+        <button class="speed-btn" onclick="FRE_Network.setSpeed(2000, event.target)">0.5×</button>
+        <button class="speed-btn active" onclick="FRE_Network.setSpeed(1200, event.target)">1×</button>
+        <button class="speed-btn" onclick="FRE_Network.setSpeed(600, event.target)">2×</button>
+        <button class="speed-btn" onclick="FRE_Network.setSpeed(300, event.target)">4×</button>
+      </div>
+      <div class="timeline-wrap">
+        <div class="timeline-label">
+          <span>DRAG TO SCRUB · <kbd>←</kbd> <kbd>→</kbd> STEP · <kbd>SPACE</kbd> PLAY</span>
+        </div>
+        <input type="range" id="year-slider" min="0" max="16" value="0" oninput="FRE_Network.onSlider(this.value)">
+      </div>
+      <div class="network-legend">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#00F5FF;border-color:#00F5FF"></div>
+          <span class="legend-label">Incubator</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#FFB800;border-color:#FFB800"></div>
+          <span class="legend-label">Refinery</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#FF2D78;border-color:#FF2D78"></div>
+          <span class="legend-label">Aggregator</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-line" style="border-top:2px dashed #3A7FFF;height:2px"></div>
+          <span class="legend-label">Standard transfer</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-line" style="background:#FF2D78"></div>
+          <span class="legend-label">Generational Jump</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECTION 2: MARKET INTELLIGENCE                         -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="intelligence">
+  <div class="section-header">
+    <div class="section-number">02 / 04 — MARKET INTELLIGENCE</div>
+    <h2 class="section-title">FOUR ANALYTICAL LENSES</h2>
+    <p class="section-desc">
+      Each panel below examines a different dimension of the transfer market.
+      Hover any data point for contextual detail. Scroll down to Section 03 for full written interpretation of every chart.
+    </p>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-num">PANEL 01 — MATURITY PREMIUM</div>
+        <div class="chart-card-title">Value Created by Club Role</div>
+        <div class="chart-card-sub">
+          How much does a player's fee grow between their first and final transfer?
+          The violin shape shows the full distribution — wide = more variation in outcomes.
+        </div>
+      </div>
+      <div class="chart-card-body"><div id="chart-violin" style="height:380px"></div></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-num">PANEL 02 — SCOUTING BLINDSPOTS</div>
+        <div class="chart-card-title">Underrecruited Talent Markets</div>
+        <div class="chart-card-sub">
+          Countries that export significant talent volumes but receive disproportionately
+          little direct recruitment spend from elite Aggregator clubs.
+        </div>
+      </div>
+      <div class="chart-card-body"><div id="chart-blindspot" style="height:380px"></div></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-num">PANEL 03 — REVENUE TRAJECTORY</div>
+        <div class="chart-card-title">How Club Revenues Diverged (2010–2026)</div>
+        <div class="chart-card-sub">
+          Average annual club revenue (€M) grouped by role. The widening gap reveals
+          structural inequality in how football wealth compounds over time.
+        </div>
+      </div>
+      <div class="chart-card-body"><div id="chart-revenue" style="height:380px"></div></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-num">PANEL 04 — GENERATIONAL JUMPS</div>
+        <div class="chart-card-title">Elite Transfers: Age vs. Fee (€M)</div>
+        <div class="chart-card-sub">
+          Only the most extraordinary moves: named superstars, or players aged ≤ 22
+          sold for ≥ €40 M. Colour gradient = transfer year (violet = early, yellow = recent).
+        </div>
+      </div>
+      <div class="chart-card-body"><div id="chart-genjump" style="height:380px"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECTION 3: DEEP ANALYSIS                               -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="analysis">
+  <div class="section-header">
+    <div class="section-number">03 / 04 — DATA INTERPRETATION</div>
+    <h2 class="section-title">WHAT THE DATA IS TELLING US</h2>
+    <p class="section-desc">
+      A thorough reading of every chart — what each metric means, what the patterns reveal,
+      and what they imply for clubs operating at different levels of the ecosystem.
+    </p>
+  </div>
+
+  <!-- ANALYSIS 1: NETWORK -->
+  <div class="analysis-block">
+    <div class="analysis-block-title">① The Recruitment Network — Reading the Graph</div>
+    <div class="stat-row">
+      <div class="stat-pill"><div class="stat-pill-val">52</div><div class="stat-pill-label">CLUBS IN NETWORK</div></div>
+      <div class="stat-pill"><div class="stat-pill-val amber">17</div><div class="stat-pill-label">SEASONS TRACKED</div></div>
+      <div class="stat-pill"><div class="stat-pill-val magenta">9,537</div><div class="stat-pill-label">TRANSFER EDGES</div></div>
+    </div>
+    <p class="analysis-text">
+      The network is a <strong>force-directed graph</strong> — a physics simulation where clubs act as charged particles
+      connected by transfer-fee springs. <strong class="hl-magenta">Aggregator superclubs</strong> (Real Madrid, Manchester City, PSG, etc.)
+      are pinned in a fixed outer ring, acting as gravitational anchors. Every other club settles into position
+      based on the volume and value of its transfer activity with those anchors.
+    </p>
+    <p class="analysis-text">
+      <strong>What to look for as you play through the timeline:</strong> In 2010, the network is relatively diffuse —
+      clubs are spread out because transfer activity and fees were lower overall. By 2016–2018, you'll notice
+      <strong class="hl-amber">Refinery clubs</strong> (Ajax, Dortmund, Porto) clustering tightly around the Aggregator ring.
+      This reflects the rise of the "sell-to-compete" model: clubs deliberately developing talent for Aggregator sales
+      as their primary revenue mechanism.
+    </p>
+    <p class="analysis-text">
+      Node size is directly proportional to <strong>annual club revenue (€M)</strong> — so the largest nodes in the outer
+      ring are exactly who you'd expect. Edge width reflects <strong>transfer fee size</strong> — thicker lines mean more
+      expensive transfers. The bold <strong class="hl-magenta">magenta edges</strong> are Generational Jumps: elite moves
+      where a young talent (≤ 22, ≥ €40M) crosses from a development club straight to the top tier.
+      Dashed blue edges are Standard Lifecycle transfers — the bread-and-butter of the market.
+    </p>
+    <p class="analysis-text">
+      The 2020 season shows a dramatic contraction — nodes spread out again as COVID-19 froze transfer
+      budgets and severed the usual fee-spring connections. The network re-tightens from 2021 onward
+      as pent-up demand and private equity interest pushed fees to new records.
+    </p>
+    <p class="analysis-text">
+      <strong>Try it:</strong> click any node to pin it and open its full revenue history panel on the right,
+      or use the search box in the nav bar to jump straight to a specific club.
+    </p>
+  </div>
+
+  <!-- ANALYSIS 2: MATURITY VIOLIN -->
+  <div class="analysis-block">
+    <div class="analysis-block-title">② Maturity Premium Violin — How Value Is Created</div>
+    <div class="stat-row">
+      <div class="stat-pill"><div class="stat-pill-val magenta">€73M</div><div class="stat-pill-label">AVG PREMIUM (AGGREGATOR)</div></div>
+      <div class="stat-pill"><div class="stat-pill-val amber">€19M</div><div class="stat-pill-label">MEDIAN (INCUBATOR)</div></div>
+      <div class="stat-pill"><div class="stat-pill-val">€194M</div><div class="stat-pill-label">HIGHEST RECORDED</div></div>
+    </div>
+    <p class="analysis-text">
+      The <strong>Maturity Premium</strong> for any player is defined as: <em>final transfer fee minus first recorded
+      transfer fee</em>. It measures the total <strong>financial appreciation</strong> a player generates across their
+      career arc — from their first professional sale (often a youth academy exit) to their final major
+      transfer. Only players with positive premiums are included, and each player's premium is attributed
+      to the <strong>role of the club that received them in that final transfer</strong> — the role that
+      ultimately captured the matured value.
+    </p>
+    <p class="analysis-text">
+      <strong>Reading the violin shape:</strong> Each shape is a kernel density estimate of the distribution.
+      Wide at a given value = many players generated that exact premium. The box inside shows the
+      interquartile range (middle 50%). The white dot is the median; the horizontal line is the mean.
+      A tail stretching upward indicates rare but spectacular outcomes — a few players
+      worth exponentially more than most.
+    </p>
+    <p class="analysis-text">
+      <strong class="hl-magenta">Aggregators</strong> show the highest median premium (€56M) and the widest
+      spread toward the top of the distribution (mean €73M, interquartile range €18M–€124M).
+      This is the structurally correct reading once you account for <em>where the premium is realised</em>:
+      a player's value compounds across their whole development arc, and that compounded value is captured
+      whichever club happens to make the <em>final</em> purchase — which, for the most sought-after talent,
+      is almost always an Aggregator. The superclubs aren't creating this value through development; they're
+      paying the accumulated price of everyone else's development work.
+    </p>
+    <p class="analysis-text">
+      <strong class="hl-cyan">Incubators</strong> sit in the middle (median €19M, mean €42M). Counter to the
+      "Incubators sell cheap and early" intuition, this captures cases where an Incubator's player goes
+      directly to an Aggregator without passing through an intermediate Refinery stage — when that happens,
+      the Incubator itself receives the full jump in valuation.
+    </p>
+    <p class="analysis-text">
+      <strong class="hl-amber">Refinery clubs</strong> show the lowest median premium (€12.5M) of the three,
+      which is the more subtle and arguably more interesting finding here: Refineries typically buy a player
+      mid-career, hold them only a season or two, and sell onward quickly — so the premium captured in any
+      single Refinery-to-Aggregator leg is smaller than the cumulative premium that shows up once that same
+      player reaches their final destination. Ajax's system — developing and selling players like Frenkie de
+      Jong or Matthijs de Ligt — works by capturing many <em>smaller</em> premiums at high volume and velocity,
+      not one enormous payday per player.
+    </p>
+  </div>
+
+  <!-- ANALYSIS 3: BLINDSPOTS -->
+  <div class="analysis-block">
+    <div class="analysis-block-title">③ Scouting Blindspots — The Inefficiencies Aggregators Miss</div>
+    <div class="stat-row">
+      <div class="stat-pill"><div class="stat-pill-val cyan">France</div><div class="stat-pill-label">BLINDSPOT #1 · SCORE 0.11</div></div>
+      <div class="stat-pill"><div class="stat-pill-val cyan">United States</div><div class="stat-pill-label">BLINDSPOT #2 · SCORE 0.11</div></div>
+      <div class="stat-pill"><div class="stat-pill-val cyan">Italy</div><div class="stat-pill-label">BLINDSPOT #3 · SCORE 0.10</div></div>
+    </div>
+    <p class="analysis-text">
+      The <strong>Blindspot Score</strong> answers the question: <em>"Which countries are producing large volumes of
+      transferable talent that elite clubs are systematically under-buying from?"</em> The formula is:
+    </p>
+    <div style="margin:16px 0;padding:14px 20px;background:var(--bg);border-radius:8px;border:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--amber)">
+      Blindspot Score = Total Outbound Transfers ÷ (Total €M Sold Directly to Aggregators + 1)
+    </div>
+    <p class="analysis-text">
+      A high score means a country sends many players into the global market but sees little of that
+      volume translated into <em>direct</em> Aggregator recruitment. The +1 prevents division by zero
+      for countries with zero Aggregator sales.
+    </p>
+    <p class="analysis-text">
+      <strong class="hl-cyan">France</strong> tops the chart — and that's a paradox, given that France has produced
+      some of the world's most expensive players. The score is high precisely <em>because</em> total export
+      volume is so enormous (1,252 outbound transfers in our dataset), while Aggregator clubs still
+      capture only a fraction of that supply. Most French players pass through Ligue 1 or lower-tier
+      European leagues before reaching the elite tier. This represents a genuine arbitrage opportunity:
+      clubs with French scouting infrastructure can access talent earlier and cheaper than the
+      superclub consensus price.
+    </p>
+    <p class="analysis-text">
+      <strong class="hl-amber">United States</strong> scores second — a surprise to traditional European scouts.
+      MLS has evolved from a retirement league into a serious development environment.
+      The <em>Homegrown Player</em> rules incentivise youth development, and a growing number of
+      American players are proving capable at the highest level. The low direct Aggregator spend on
+      US talent relative to its volume output makes it a structurally undervalued market in our model.
+    </p>
+    <p class="analysis-text">
+      <strong>Italy, Germany, and the Netherlands</strong> feature despite being elite leagues.
+      The reason: their domestic leagues produce huge transfer volumes through a highly active
+      internal market, but Aggregators (a specific set of 9 superclubs here) don't directly recruit
+      from those leagues in proportion to their output. Much of that talent is absorbed by other
+      high-tier clubs (Juventus, Bayern) who are themselves classified as Aggregators — their purchases
+      count as peer-Aggregator transactions rather than the "raw supply" this score is designed to identify.
+    </p>
+  </div>
+
+  <!-- ANALYSIS 4: REVENUE -->
+  <div class="analysis-block">
+    <div class="analysis-block-title">④ Revenue Trajectory — The Compounding Financial Gap</div>
+    <div class="stat-row">
+      <div class="stat-pill"><div class="stat-pill-val magenta">€277M</div><div class="stat-pill-label">AGG. AVG REVENUE 2010</div></div>
+      <div class="stat-pill"><div class="stat-pill-val magenta">€787M</div><div class="stat-pill-label">AGG. AVG REVENUE 2026</div></div>
+      <div class="stat-pill"><div class="stat-pill-val green">+186%</div><div class="stat-pill-label">AGGREGATOR GROWTH</div></div>
+    </div>
+    <p class="analysis-text">
+      The revenue chart is perhaps the starkest visualisation in this entire dashboard.
+      It tells a simple, brutal story: <strong>since 2010, the financial gap between Aggregator
+      superclubs and the rest of the pyramid has not just widened — it has compounded</strong>,
+      growing at a rate that makes structural inequality essentially permanent under current rules.
+    </p>
+    <p class="analysis-text">
+      In 2010, the average Aggregator club generated roughly <strong class="hl-magenta">€277M</strong> per year.
+      By 2026, that figure had risen to <strong class="hl-magenta">€787M</strong> —
+      a <strong class="hl-green">186% increase</strong>. Meanwhile, Incubators and Refineries grew
+      in absolute terms too — broadcasting deals, sponsorships, and global audiences lifted all clubs —
+      but nowhere near the same trajectory.
+    </p>
+    <p class="analysis-text">
+      The <strong>2019–2020 dip</strong> is unmistakable — COVID-19 wiped out matchday revenue (typically
+      15–25% of total club income for elite sides) and froze commercial contracts mid-cycle.
+      Real Madrid, Barcelona, and Bayern reported nine-figure revenue drops in 2020.
+      Crucially, the dip is steepest for Aggregators (in absolute €M terms) but proportionally
+      similar across roles — showing that the pandemic was a universal shock, not a leveller.
+    </p>
+    <p class="analysis-text">
+      The <strong>post-2021 acceleration</strong> is driven by a cocktail of factors: the return of matchday
+      revenue, new Champions League broadcast deals, US private equity entering European football,
+      and the explosive growth of streaming rights in Asian and North American markets.
+      The trajectory since 2022 is steeper than anything seen in the pre-COVID era.
+    </p>
+    <p class="analysis-text">
+      For <strong class="hl-amber">Refinery</strong> and <strong class="hl-cyan">Incubator</strong> clubs,
+      the implication is existential: the only sustainable model is one where player development
+      and transfer income <em>replaces</em> the revenue streams they cannot compete for.
+      Clubs like Ajax, Porto, and Red Bull Salzburg have institutionalised this — not as a concession
+      but as a deliberate competitive strategy. The chart shows it working: their revenues grow
+      steadily even without Champions League media pools or global sponsorship multipliers.
+    </p>
+  </div>
+
+  <!-- ANALYSIS 5: GEN JUMPS -->
+  <div class="analysis-block">
+    <div class="analysis-block-title">⑤ Generational Jumps — Elite Transfers Decoded</div>
+    <div class="stat-row">
+      <div class="stat-pill"><div class="stat-pill-val">264</div><div class="stat-pill-label">QUALIFYING TRANSFERS</div></div>
+      <div class="stat-pill"><div class="stat-pill-val amber">≤22 yrs</div><div class="stat-pill-label">AGE THRESHOLD</div></div>
+      <div class="stat-pill"><div class="stat-pill-val magenta">≥€40M</div><div class="stat-pill-label">FEE THRESHOLD</div></div>
+    </div>
+    <p class="analysis-text">
+      A <strong>Generational Jump</strong> is defined here as a transfer that satisfies at least one of:
+      (a) the player is a named superstar (Messi, Ronaldo, Mbappé, Haaland, etc.),
+      or (b) the player is aged <strong>22 or younger</strong> and the transfer fee is
+      <strong>€40 million or more</strong>. The criteria are deliberately strict — the goal is to isolate
+      transfers that genuinely reshape a club's competitive trajectory, not every expensive youth move.
+    </p>
+    <p class="analysis-text">
+      <strong>Reading the scatter:</strong> the X-axis shows the player's age at transfer.
+      The Y-axis shows the transfer fee in €M. The colour encodes the transfer year — deep purple/violet
+      shades = early 2010s; yellow/bright shades = 2023–2026. This means you can immediately see two
+      things: where the market's age-price curve sits, and how that curve has shifted over time.
+    </p>
+    <p class="analysis-text">
+      The most striking pattern is the <strong>vertical stacking at ages 17 and 18</strong>.
+      These are players who arrive at Aggregators before their market value has fully peaked —
+      clubs are paying enormous premiums to lock in long-term options on talent.
+      Kylian Mbappé's 2017 loan-to-buy at PSG (finalised at €145M at age 18) is the canonical
+      data point that redefined what 18-year-olds are worth. Jude Bellingham at 19 to Real Madrid
+      for €103M pushed the 19-year-old ceiling.
+    </p>
+    <p class="analysis-text">
+      The <strong class="hl-green">rising floor</strong> of fees across all ages when comparing
+      violet (2010–2014) to yellow (2022–2026) dots confirms what practitioners observe:
+      inflation in the transfer market has been structural, not cyclical.
+      Even controlling for age, a 20-year-old in 2024 commands roughly 2.5–3× the fee
+      that an equivalent talent commanded in 2012. This is driven by revenue growth at the top,
+      compressed supply (fewer elite players per generation than buyers), and the increased
+      sophistication of data-driven valuation models.
+    </p>
+    <p class="analysis-text">
+      Notably, <strong>ages 16 and 17</strong> show a wide fee range. Some clubs (particularly
+      Spanish and French sides) are willing to pay extraordinary amounts for the very youngest
+      prodigies — setting benchmarks that simply didn't exist before 2020. This is a fundamental shift
+      in when clubs are willing to commit top-tier fees: the market is pricing in <em>projected</em>
+      peak value, not current playing level.
+    </p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECTION 4: GLOSSARY                                    -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="glossary">
+  <div class="section-header">
+    <div class="section-number">04 / 04 — REFERENCE</div>
+    <h2 class="section-title">COMPLETE GLOSSARY</h2>
+    <p class="section-desc">
+      Every term, label, score, and metric used across this dashboard, explained in plain language
+      with formulas where applicable. Filter by category to find what you need.
+    </p>
+  </div>
+
+  <div class="gloss-filter">
+    <button class="gloss-filter-btn active" data-filter="all">All Terms</button>
+    <button class="gloss-filter-btn" data-filter="role">Club Roles</button>
+    <button class="gloss-filter-btn" data-filter="metric">Metrics</button>
+    <button class="gloss-filter-btn" data-filter="path">Transfer Paths</button>
+    <button class="gloss-filter-btn" data-filter="score">Scores</button>
+  </div>
+
+  <div class="glossary-grid">
+
+    <div class="gloss-card" data-category="role">
+      <div class="gloss-term">Incubator<span class="gloss-badge badge-role">Club Role</span></div>
+      <div class="gloss-def">
+        A club whose primary economic function is <strong>identifying and developing raw young talent</strong>
+        and selling it onward before peak value. Incubators typically have strong academy infrastructure,
+        low revenues relative to league position, and a high ratio of outbound under-21 transfers.
+        Examples: Sporting CP, Shakhtar Donetsk, Red Bull Salzburg.<br>
+        <strong>Visual:</strong> Cyan nodes in the network.
+      </div>
+      <div class="gloss-formula">youth_out_share = under-21 exits ÷ total exits &gt; 0.45</div>
+    </div>
+
+    <div class="gloss-card" data-category="role">
+      <div class="gloss-term">Refinery<span class="gloss-badge badge-role">Club Role</span></div>
+      <div class="gloss-def">
+        A club that <strong>buys talent at the Incubator stage</strong>, adds competitive experience,
+        coaching, and European exposure, then sells at peak value to Aggregators.
+        Refineries sit structurally between raw supply and elite demand.
+        Examples: Ajax, Dortmund, Porto, Benfica, RB Leipzig.<br>
+        <strong>Visual:</strong> Amber nodes in the network.
+      </div>
+      <div class="gloss-formula">refine_ratio = above-median sales to Aggregators ÷ (U21 arrivals + 1) &gt; 0.30</div>
+    </div>
+
+    <div class="gloss-card" data-category="role">
+      <div class="gloss-term">Aggregator<span class="gloss-badge badge-role">Club Role</span></div>
+      <div class="gloss-def">
+        A <strong>trophy-hunting superclub</strong> that buys talent at or near peak market value
+        and competes across all competitions simultaneously. Aggregators are the terminal node
+        of the talent pipeline — they consume value rather than create it in the transfer sense.
+        Examples: Real Madrid, Manchester City, PSG, Bayern Munich, Liverpool, Chelsea.<br>
+        <strong>Visual:</strong> Magenta nodes, fixed in the outer ring of the network.
+      </div>
+    </div>
+
+    <div class="gloss-card" data-category="metric">
+      <div class="gloss-term">Maturity Premium<span class="gloss-badge badge-metric">Metric</span></div>
+      <div class="gloss-def">
+        The <strong>net appreciation in a player's transfer fee</strong> over their career.
+        Calculated per player across all recorded paid transfers. Only positive values are counted —
+        the premium is the value added by the clubs and development environments a player passed through.
+        <br><strong>High premium:</strong> player was bought cheap and developed into an elite commodity.
+        <br><strong>Zero premium:</strong> only one transfer on record, or value did not grow.
+      </div>
+      <div class="gloss-formula">Maturity Premium = max(0, final_fee − first_fee) in €M</div>
+    </div>
+
+    <div class="gloss-card" data-category="score">
+      <div class="gloss-term">Blindspot Score<span class="gloss-badge badge-score">Score</span></div>
+      <div class="gloss-def">
+        A country-level score identifying <strong>talent markets that Aggregator clubs are
+        underrecruiting relative to their output volume</strong>.
+        High score = many players leaving the country, but Aggregators aren't buying them directly.
+        This represents a potential arbitrage opportunity for well-resourced scouting networks.
+        <br><strong>Ceiling:</strong> unbounded — driven by export volume.
+        <br><strong>Floor:</strong> 0 (impossible in practice; all active markets have some export activity).
+      </div>
+      <div class="gloss-formula">Score = total_exports ÷ (Σ €M sold to Aggregators + 1)</div>
+    </div>
+
+    <div class="gloss-card" data-category="path">
+      <div class="gloss-term">Generational Jump<span class="gloss-badge badge-path">Transfer Path</span></div>
+      <div class="gloss-def">
+        A transfer classified as <strong>extraordinary</strong> — either a named global superstar,
+        or a player aged ≤ 22 sold for ≥ €40M. The threshold is calibrated to exclude
+        above-average-but-unremarkable moves and surface only structurally important transfers
+        that redefine market valuations for a given age cohort.
+        <br><strong>Visual:</strong> Bold magenta edges in the network.
+      </div>
+      <div class="gloss-formula">Generational Jump ↔ (player ∈ superstars) OR (age ≤ 22 AND fee ≥ €40M AND dest = Aggregator)</div>
+    </div>
+
+    <div class="gloss-card" data-category="path">
+      <div class="gloss-term">Standard Lifecycle<span class="gloss-badge badge-path">Transfer Path</span></div>
+      <div class="gloss-def">
+        Any paid, non-loan transfer that does not qualify as a Generational Jump.
+        The <strong>majority of transfer activity</strong> (97%+ by count) falls into this category.
+        These moves form the connective tissue of the ecosystem — routine squad rotations,
+        value extractions, and positional upgrades that keep clubs at their tactical ceiling
+        without reshaping the market.<br>
+        <strong>Visual:</strong> Dashed blue edges in the network.
+      </div>
+    </div>
+
+    <div class="gloss-card" data-category="metric">
+      <div class="gloss-term">Revenue (€M)<span class="gloss-badge badge-metric">Metric</span></div>
+      <div class="gloss-def">
+        <strong>Annual club revenue</strong> in millions of euros. Includes matchday income
+        (ticket sales, hospitality), broadcast distributions (domestic league, UEFA competitions),
+        and commercial income (kit deals, sponsorships, naming rights).
+        Used in this dashboard to size network nodes — larger node = higher revenue club.
+        Source: club financials table, covering 2010–2026.
+      </div>
+    </div>
+
+    <div class="gloss-card" data-category="metric">
+      <div class="gloss-term">Wages-to-Revenue %<span class="gloss-badge badge-metric">Metric</span></div>
+      <div class="gloss-def">
+        The fraction of a club's total annual revenue consumed by the <strong>total wage bill</strong>
+        (player and staff salaries). Industry benchmark: below 60% is considered sustainable;
+        above 80% signals financial distress.
+        Clubs exceeding 100% (spending more on wages than they earn) are living on debt or owner subsidy.
+        Visible in node hover tooltips and the club detail panel.
+      </div>
+      <div class="gloss-formula">Wages-to-Revenue % = wage_bill_eur_m ÷ revenue_eur_m × 100</div>
+    </div>
+
+    <div class="gloss-card" data-category="metric">
+      <div class="gloss-term">Operating Profit (€M)<span class="gloss-badge badge-metric">Metric</span></div>
+      <div class="gloss-def">
+        <strong>Revenue minus operating costs</strong> (wages, match costs, administration) —
+        before transfer fees and financing charges. A positive figure means the club's core
+        operations are self-sustaining. Most clubs at Incubator level rely on transfer income
+        to convert an operating deficit into an overall profit.
+        Shown in node hover tooltips: green = profitable, red = loss-making.
+      </div>
+    </div>
+
+    <div class="gloss-card" data-category="metric">
+      <div class="gloss-term">Force-Directed Layout<span class="gloss-badge badge-metric">Visualisation</span></div>
+      <div class="gloss-def">
+        The network layout algorithm. Clubs are treated as charged particles; transfer relationships
+        act as springs pulling connected clubs together, proportional to transfer fee.
+        <strong>Aggregators are fixed anchors</strong> — they don't move. All other clubs settle
+        into equilibrium positions where the forces balance.
+        Clubs with many high-value transfer relationships to Aggregators end up physically close to them.
+      </div>
+      <div class="gloss-formula">Spring constant k ∝ 1 / avg_revenue — richer seasons = tighter clustering</div>
+    </div>
+
+    <div class="gloss-card" data-category="metric">
+      <div class="gloss-term">Youth Out Share<span class="gloss-badge badge-metric">Classifier Input</span></div>
+      <div class="gloss-def">
+        Used to classify unknown clubs as Incubators. Defined as the fraction of a club's total
+        <strong>outbound non-loan transfers</strong> involving players aged under 21.
+        A club with youth_out_share &gt; 0.45 is predominantly selling young players and classified
+        as an Incubator. This threshold was calibrated against the manually verified club sets.
+      </div>
+      <div class="gloss-formula">youth_out_share = U21 exits ÷ total non-loan exits</div>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  Football Recruitment Ecosystem · Market Intelligence Dashboard · 2010 – 2026
+  · Data covers 9,537 paid non-loan transfers across 52 clubs in 17 seasons
+  · <a href="https://github.com" target="_blank" rel="noopener">View source on GitHub</a>
+  <br>
+  <span style="color:var(--dim);font-size:11px">
+    All transfers, fees, and club financials shown are synthetic — procedurally generated to resemble
+    real football transfer-market patterns, not sourced from real records. See the README for details.
+  </span>
+</footer>
+
+<script src="assets/js/app.js"></script>
+<script src="assets/js/network.js"></script>
+<script src="assets/js/club-panel.js"></script>
+<script src="assets/js/search.js"></script>
+<script src="assets/js/charts.js"></script>
+</body>
+</html>

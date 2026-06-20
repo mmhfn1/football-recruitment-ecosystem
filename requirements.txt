@@ -1,0 +1,10 @@
+# Used only by scripts/export_data.py to regenerate assets/data/dashboard_data.json
+# from the raw CSVs. The website itself (index.html) is pure HTML/CSS/JS and
+# needs no Python, no server, and no build step to run.
+
+networkx>=3.2.0      # force-directed layout computation
+pandas>=2.0.0         # data wrangling
+numpy>=1.24.0         # numeric helpers
+
+# Testing (optional, for src/engine.py unit tests)
+pytest>=7.4.0
